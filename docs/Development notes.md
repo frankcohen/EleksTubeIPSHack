@@ -37,14 +37,9 @@ https://github.com/me-no-dev/AsyncTCP
 https://github.com/me-no-dev/ESPAsyncWebServer
 
 
+Play images
+Play videos
 
-Todo list
-Menu of commands
-Show SPIFF images on displays randomly
-Play movie on one display
-Connect to WiFi
-Show files in SPIFF, with Delete button
-Upload image to SPIFF
 Make precompiled bin available from repository (no compiling needed)
 Publish to repository
 Announce to world
