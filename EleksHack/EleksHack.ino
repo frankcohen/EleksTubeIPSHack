@@ -1,10 +1,17 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <WiFiClient.h>
-#include <SPIFFS.h>
+#define FS_NO_GLOBALS
+#include <FS.h>
+#include "SPIFFS.h"  // For ESP32 only
+#include "Hardware.h"
+#include "ChipSelect.h"
+#include "TFTs.h"
+#include "time.h"
+#include "Clock.h"
 
-/* Put your SSID & Password */
-const char* ssid = "EleksTubeIPSHack";  // Enter SSID here
+/* SSID & Password for the EleksTube to be a Web server */
+const char* ssid = "EleksHack";  // Enter SSID here
 const char* password = "thankyou";  //Enter Password here
 
 IPAddress local_ip(192,168,1,1);
@@ -13,25 +20,48 @@ IPAddress subnet(255,255,255,0);
 
 WebServer server(80);
 
-#define FILESYSTEM SPIFFS
+const char* ntpServer = "pool.ntp.org";
+long  gmtOffset_sec = 3600;
+int   daylightOffset_sec = 3600;
 
 File fsUploadFile;
 
-boolean playImages = false;
+#define SCREENWIDTH 135
+#define SCREENHEIGHT 240
+
+#include <TFT_eSPI.h> // Hardware-specific library
+TFTs tfts;    // Display module driver
+
+Clock uclock;
+StoredConfig stored_config;
+
+boolean playImages = true;
 boolean playVideos = false;
+boolean playClock = false;
 
-// Chip Select shift register
-const uint8_t latchPin = 17;
-const uint8_t clockPin = 16;
-const uint8_t dataPin = 14;
+#define BGCOLOR    0xAD75
+#define GRIDCOLOR  0xA815
+#define BGSHADOW   0x5285
+#define GRIDSHADOW 0x600C
+#define RED        0xF800
+#define WHITE      0xFFFF
 
-static void smartDelay(unsigned long ms)
-{
-  unsigned long start = millis();
-  do 
-  {
-    // feel free to do something here
-  } while (millis() - start < ms);
+File root;
+
+void updateClockDisplay(TFTs::show_t show) {
+  tfts.setDigit(HOURS_TENS, uclock.getHoursTens(), show);
+  tfts.setDigit(HOURS_ONES, uclock.getHoursOnes(), show);
+  tfts.setDigit(MINUTES_TENS, uclock.getMinutesTens(), show);
+  tfts.setDigit(MINUTES_ONES, uclock.getMinutesOnes(), show);
+  tfts.setDigit(SECONDS_TENS, uclock.getSecondsTens(), show);
+  tfts.setDigit(SECONDS_ONES, uclock.getSecondsOnes(), show);
+}
+
+void setupMenu() {
+  tfts.chip_select.setHoursTens();
+  tfts.setTextColor(TFT_WHITE, TFT_BLACK);
+  tfts.fillRect(0, 120, 135, 120, TFT_BLACK);
+  tfts.setCursor(0, 124, 4);
 }
 
 // Borrowed from https://github.com/zenmanenergy/ESP8266-Arduino-Examples/blob/master/helloWorld_urlencoded/urlencode.ino
@@ -112,27 +142,40 @@ String urldecode(String str)
    return encodedString;
 }
 
+static void smartDelay(unsigned long ms)
+{
+  unsigned long start = millis();
+  do 
+  {
+    // feel free to do something here
+  } while (millis() - start < ms);
+}
+
 void setup() {
   Serial.begin(115200);
-  smartDelay(1000);
+  smartDelay(2000);
 
-  Serial.println("");
-  Serial.println("EleksTubeHack starting");
-
-  FILESYSTEM.begin();
+  Serial.println();
+  Serial.println( "Eleks Experiment" );
+  Serial.println( "Slideshow" );
+  Serial.println( "Randomly shows JPGs" );
   
+  randomSeed(analogRead(0));
+
   pinMode(27, OUTPUT);
   digitalWrite(27, HIGH);
-
-  // Setup 74HC595 chip select. Enabled only the left display.
-  pinMode(latchPin, OUTPUT);
-  pinMode(dataPin, OUTPUT);
-  pinMode(clockPin, OUTPUT);
-  digitalWrite(latchPin, LOW);
-  digitalWrite(dataPin, LOW);
-  digitalWrite(clockPin, LOW);
-  shiftOut(dataPin, clockPin, LSBFIRST, 0x00);  // 0x1F = Left most, 0x3E = Right most
-  digitalWrite(latchPin, HIGH);
+  
+  tfts.begin();
+  tfts.fillScreen(TFT_BLACK);
+  tfts.setTextColor(TFT_WHITE, TFT_BLACK);
+  tfts.setCursor(0, 0, 2);
+  tfts.println("Eleks Hack");
+  tfts.setTextColor(TFT_BLUE, TFT_BLACK );
+  tfts.println("Starting as server");
+  tfts.setTextColor(TFT_WHITE, TFT_BLACK);
+  tfts.println("Connect using WIFI");
+  tfts.println("SSID: EleksHack");
+  tfts.println("Password: thankyou");
 
   smartDelay(500);
 
@@ -155,6 +198,8 @@ void setup() {
   server.on("/images", HTTP_GET, handle_images);
   server.on("/movies", HTTP_GET, handle_movies);
   server.on("/manage", HTTP_GET, handle_manage);
+  server.on("/clock", HTTP_GET, handle_clock);
+  server.on("/clockupdate", HTTP_GET, handle_clockupdate);
   //server.on("/upload", HTTP_POST, handle_upload);
   
   server.on("/upload",  HTTP_POST,[](){ server.send(200);}, handle_upload);
@@ -164,7 +209,13 @@ void setup() {
   server.on("/delete", HTTP_GET, handle_delete);
 
   server.begin();
-  Serial.println("Setup complete");
+  Serial.println("Ready");
+  tfts.setTextColor(TFT_BLUE, TFT_BLACK );
+  tfts.println("Ready");
+  
+  tfts.beginJpg();
+  
+  Serial.println( "setup() done" );
 }
 
 void handle_NotFound()
@@ -172,10 +223,10 @@ void handle_NotFound()
   Serial.println("handle_NotFound()");
   
   String resp = "";
-  resp +="<html><head>";
-  resp +="<title>EleksTubeIPSHack Controller</title>\n";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
-  resp +="<h1>EleksTubeIPSHack Control</h1><br><br>";
+  resp +="<h1>EleksHack Control</h1><br><br>";
   resp += "No handler for that URL";
   resp +="</body>\n";
   resp +="</html>\n";
@@ -187,10 +238,10 @@ void handle_connectwifi() {
   Serial.println("handle_connectwifi()");
 
   String resp = "";
-  resp +="<html><head>";
-  resp +="<title>EleksTubeIPSHack Controller</title>\n";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
-  resp +="<h1>EleksTubeIPSHack Control</h1><br><br>";
+  resp +="<h1>EleksHack Control</h1><br><br>";
 
   int n = WiFi.scanNetworks();
   Serial.println("scan done");
@@ -225,10 +276,10 @@ void handle_getpassword(){
   Serial.println("handle_choosenetwork()");
 
   String resp = "";
-  resp +="<html><head>";
-  resp +="<title>EleksTubeIPSHack Controller</title>\n";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
-  resp +="<h1>EleksTubeIPSHack Control</h1><br><br>";
+  resp +="<h1>EleksHack Control</h1><br><br>";
 
   resp += "<form action='/connect'>";
   resp += "Network: " + server.arg("ssid") + "<br>";
@@ -252,10 +303,10 @@ void handle_connect(){
   Serial.println("handle_connect()");
 
   String resp = "";
-  resp +="<html><head>";
-  resp +="<title>EleksTubeIPSHack Controller</title>\n";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
-  resp +="<h1>EleksTubeIPSHack Control</h1><br><br>";
+  resp +="<h1>EleksHack Control</h1><br><br>";
 
   unsigned int sslen = server.arg("ssid").length() + 1;
   char myssid[ sslen ];
@@ -320,15 +371,22 @@ void handle_menu()
   Serial.println( "Handle Menu" );
 
   String resp = "";
-  resp +="<html><head>";
-  resp +="<title>EleksTubeIPSHack Controller</title>\n";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
-  resp +="<h1>EleksTubeIPSHack Control</h1><br><br>";
+  resp +="<h1>EleksHack Control</h1><br><br>";
 
   resp +="<p><a href=\"images\">Play images</a></p>";
-  resp +="<p><a href=\"/movies\">Play movies</a></p>";
+
+  resp +="<p><a href=\"clock\">Play clock</a></p>";
+
+  // Not yet, still neeed to figure out TFT_eSPI's DMA mode for MPEGs
+  // resp +="<p><a href=\"/movies\">Play movies</a></p>";
+  
   resp +="<p><a href=\"/wifi\">Connect to WiFi</a></p>";
   resp +="<p><a href=\"/manage\">Manage media</a></p>";
+
+  resp +="<br><br><br><a href=\"https://github.com/SmittyHalibut/EleksTubeHAX\">A happy hacking project.</a>";
 
   resp +="</body>\n";
   resp +="</html>\n";  
@@ -338,17 +396,25 @@ void handle_menu()
 void handle_manage()
 {
   String resp = "";
-  resp +="<html><head>";
-  resp +="<title>EleksTubeIPSHack Controller</title>\n";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
-  resp +="<h1>EleksTubeIPSHack Control</h1><br><br>";
+  resp +="<h1>EleksHack Control</h1><br><br>";
 
   resp +="<p><a href=\"/uploadform\">Upload</a></p><br><br>";
 
   resp +="<br><br><p><a href=\"/\">Menu</a></p>";
 
+  resp +="<br><br>totalBytes=";
+  resp +=SPIFFS.totalBytes();
+  resp +=", usedBytes=";
+  resp +=SPIFFS.usedBytes();
+  resp +=", freeBytes=";
+  resp +=SPIFFS.totalBytes() - SPIFFS.usedBytes();
+  resp +="<br><br>";
+
   String path = "/";
-  File root = FILESYSTEM.open(path);
+  File root = SPIFFS.open(path);
   path = String();
 
   if(root.isDirectory()){
@@ -381,15 +447,23 @@ void handle_images()
 {
   if ( server.hasArg("mode") )
   {
-    if ( server.arg("mode") == "play" ) playImages = true;
-    if ( server.arg("mode") == "stop" ) playImages = false;
+    if ( server.arg("mode") == "play" ) 
+    {  
+      playImages = true;
+      playVideos = false;
+      playClock = false;
+    }
+    if ( server.arg("mode") == "stop" )
+    {
+      playImages = false;
+    }
   }
   
   String resp = "";
-  resp +="<html><head>";
-  resp +="<title>EleksTubeIPSHack Controller</title>\n";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
-  resp +="<h1>EleksTubeIPSHack Control</h1><br><br>";
+  resp +="<h1>EleksHack Control</h1><br><br>";
 
   if ( playImages )
   {
@@ -403,8 +477,106 @@ void handle_images()
   resp += "<p><a href=\"/images?mode=play\">Play images</a></p>";
   resp += "<p><a href=\"/images?mode=stop\">Stop images</a></p>";
 
+  resp +="<br><br><p><a href=\"/\">Menu</a></p>";
+
   resp +="</body>";
   resp +="</html>";  
+  server.send(200, "text/html", resp); 
+}
+
+void handle_clock()
+{  
+  if ( server.hasArg("mode") )
+  {
+    if ( server.arg("mode") == "play" ) 
+    {
+      playClock = true;
+      playImages = false;
+      playVideos = false;
+    }
+    if ( server.arg("mode") == "stop" ) playClock = false;
+  }
+
+  uclock.begin(&stored_config.config.uclock);
+  updateClockDisplay(TFTs::force);
+  Serial.print("Saving config.");
+  stored_config.save();
+  Serial.println(" Done.");
+    
+  String resp = "";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<title>EleksHack Controller</title>\n";
+  resp +="</head><body>";
+  resp +="<h1>EleksHack Control</h1><br><br>";
+
+  if ( playClock )
+  {
+    resp +="<p>Playing</p><br><br>";
+  }
+  else
+  {
+    resp +="<p>Stopped</p><br><br>";
+  }
+
+  resp += "<p><a href=\"/clock?mode=play\">Play clock</a></p>";
+  resp += "<p><a href=\"/clock?mode=stop\">Stop clock</a></p>";
+
+  resp += "<br><br><p>Clock settings</p>";
+
+  resp += "<form action='/handle_clockupdate'>";
+  resp += "Timezone: <input size=\"10\" name=\"timezone\" value=\"-7\"><br>";
+  resp += "Daylight savings adjustment: <input size=\"10\" name=\"daylight\" value=\"0" + server.arg("ssid") + "\">";
+  resp += "<br>";
+  resp += "<input type=\"submit\" value=\"Get NTP Time\">";
+  resp += "</form><br>";
+
+  resp += "<br><br>Notes:<br>";
+  resp += "<p>UTC offset for your timezone in milliseconds. Refer the <a href=\"https://en.wikipedia.org/wiki/List_of_UTC_time_offsets\">list of UTC time offsets. For example, Pacific time is -7</a>.</p>";
+
+  resp += "<p>If your country observes Daylight saving time set it to 3600. Otherwise, set it to 0.</p>";
+
+  resp +="<br><br><p><a href=\"/\">Menu</a></p>";
+
+  resp +="</body>";
+  resp +="</html>";  
+  server.send(200, "text/html", resp); 
+}
+
+void handle_clockupdate()
+{ 
+  String resp = "";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<title>EleksHack Controller</title>\n";
+  resp +="</head><body>";
+  resp +="<h1>EleksHack Control</h1><br><br>";
+
+  gmtOffset_sec = server.arg("timezone").toInt() * 60 * 60;
+  Serial.print( "gmtOffset_sec = " );
+  Serial.println( gmtOffset_sec );
+  daylightOffset_sec = server.arg("daylight").toInt();
+  Serial.print( "daylightOffset_sec = " );
+  Serial.println( daylightOffset_sec );
+
+  struct tm timeinfo;
+  if(!getLocalTime(&timeinfo)){
+    Serial.println("Failed to obtain time");
+    resp +="<br><p>Failed to get time from NTP service. Check <a href=\"/wifi\">connection to WiFi</a></p>";
+  }
+  else
+  {
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+
+    uclock.setTimeZoneOffset( gmtOffset_sec );
+    uclock.adjustTimeZoneOffset( daylightOffset_sec );
+
+    Serial.println( "TimeZone and Daylight offsets set" );
+    resp +="<br><p>TimeZone and Daylight offsets set.</p>";
+  }
+
+  resp +="<br><br><p><a href=\"/\">Menu</a></p>";
+
+  resp +="</body>\n";
+  resp +="</html>\n";  
   server.send(200, "text/html", resp); 
 }
 
@@ -417,10 +589,10 @@ void handle_movies()
   }
   
   String resp = "";
-  resp +="<html><head>";
-  resp +="<title>EleksTubeIPSHack Controller</title>\n";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
-  resp +="<h1>EleksTubeIPSHack Control</h1><br><br>";
+  resp +="<h1>EleksHack Control</h1><br><br>";
 
   if ( playVideos )
   {
@@ -430,9 +602,11 @@ void handle_movies()
   {
     resp +="<p>Stopped</p><br><br>";
   }
-  
+
   resp += "<p><a href=\"/videos?mode=play\">Play videos</a></p>";
   resp += "<p><a href=\"/videos?mode=stop\">Stop videos</a></p>";
+
+  resp +="<br><br><p><a href=\"/\">Menu</a></p>";
 
   resp +="</body>\n";
   resp +="</html>\n";  
@@ -442,10 +616,10 @@ void handle_movies()
 void handle_uploadform()
 {
   String resp = "";
-  resp +="<html><head>";
-  resp +="<title>EleksTubeIPSHack Controller</title>\n";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
-  resp +="<h1>EleksTubeIPSHack Control</h1><br><br>";
+  resp +="<h1>EleksHack Control</h1><br><br>";
 
   resp +="<p>Upload an image or movie</p>";
   
@@ -458,6 +632,8 @@ void handle_uploadform()
   resp +=SPIFFS.totalBytes();
   resp +=", usedBytes=";
   resp +=SPIFFS.usedBytes();
+  resp +=", freeBytes=";
+  resp +=SPIFFS.totalBytes() - SPIFFS.usedBytes();
   
   resp +="<br><br><p><a href=\"/\">Menu</a></p>";
 
@@ -479,12 +655,14 @@ String getContentType(String filename) { // convert the file extension to the MI
 
 void handle_upload()
 {
-  Serial.println("handle_upload"); 
-
+  Serial.println("handle_upload");
+  
   Serial.print( "SPIFFS totalBytes=" );
   Serial.print( SPIFFS.totalBytes() );
   Serial.print( ", usedBytes=" );
-  Serial.println( SPIFFS.usedBytes() );
+  Serial.print( SPIFFS.usedBytes() );
+  Serial.print( ", free bytes=" );
+  Serial.println( SPIFFS.totalBytes() - SPIFFS.usedBytes() );
 
   HTTPUpload& upload = server.upload();
 
@@ -531,18 +709,18 @@ void handle_upload()
 void handle_success()
 {
   String resp = "";
-  resp +="<html><head>";
-  resp +="<title>EleksTubeIPSHack Controller</title>\n";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
-  resp +="<h1>EleksTubeIPSHack Control</h1><br><br>";
+  resp +="<h1>EleksHack Control</h1><br><br>";
 
   resp +="<p>Success</p><br><br>";
-  
-  resp +="<form method=\"post\" enctype=\"multipart/form-data\">";
+
+  resp +="<form action=\"upload\" method=\"post\" enctype=\"multipart/form-data\">";
   resp +="<input type=\"file\" name=\"name\">";
   resp +="<input class=\"button\" type=\"submit\" value=\"Upload\">";
   resp +="</form>";
-
+  
   resp +="<br><br><p><a href=\"/\">Menu</a></p>";
 
   resp +="</body>\n";
@@ -553,16 +731,16 @@ void handle_success()
 void handle_delete()
 {
   String resp = "";
-  resp +="<html><head>";
-  resp +="<title>EleksTubeIPSHack Controller</title>\n";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
-  resp +="<h1>EleksTubeIPSHack Control</h1><br><br>";
+  resp +="<h1>EleksHack Control</h1><br><br>";
 
   resp +="<p>Deleting file ";
   resp += urldecode( server.arg("file") );
   resp +="</p>";
 
-  if ( FILESYSTEM.remove( urldecode( server.arg("file") ) ) )
+  if ( SPIFFS.remove( urldecode( server.arg("file") ) ) )
   {
     resp +="<p>File deleted</p><br><br>";
     Serial.println("File deleted");
@@ -585,13 +763,19 @@ void loop() {
 
   if ( playImages )
   {
-    
+    tfts.showNextJpg();
   }
 
   if ( playVideos )
   {
     
   }
-  
-  smartDelay(500);
+
+  if ( playClock )
+  {
+    uclock.loop();
+    updateClockDisplay(TFTs::yes);  
+  }
+
+  smartDelay(2000);
 }

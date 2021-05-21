@@ -5,7 +5,7 @@ Hacking the Elekstube IPS ESP32 TFT based clock
 
 ![Photo of the EleksTube IPS sitting on a desktop displaying Nixie Tube images](docs/images/EleksTubeIPS.jpg)
 
-[EleksMaker](https://eleksmaker.com/) designed it to appear to have a [Nixie Tube display](https://en.wikipedia.org/wiki/Nixie_tube). Of course, it's all an ingenious fake! An ESP32 processor drives 6 TFT LCD displays. USB C connectors provide power and communication to a FTDI microcontroller programmer using a pre-programmed bootloader. The environment is familiar to anyone who uses Arduino microcontroller boards, C/C++ languages, Arduino IDE, and the ESP32 processor.
+[EleksMaker](https://eleksmaker.com/) designed it to appear to have a [Nixie Tube display](https://en.wikipedia.org/wiki/Nixie_tube). Of course, it's all an ingenious fake! An ESP32 processor drives 6 TFT LCD displays. USB C connectors provide power and communication to a FTDI microcontroller programmer using a pre-programmed bootloader. The environment is familiar to users of Arduino microcontroller boards, C/C++ languages, Arduino IDE, and the ESP32 processor.
 
 The board features 3 push buttons for set-up configuration, a power button, a real-time clock with battery backup, a power control chip to dim the displays, and 6 screens. The screens are IPS 1.14 Inch 8PIN Spi Hd Tft Lcd-screen with ST7789 driver IC. They display 135 by 240 pixels and are supported by the TFT_eSPI library.
 
@@ -23,8 +23,10 @@ Installation
 
 Builds on Arduino IDE 1.8.13 on MacOS 11.3.1. Choose Tools -> Board -> ESP Arduino (in sketchbook) -> ESP Dev Module. Set Tools -> Upload speed to 115200.
 
+More details on how this works on the way!
 
-
+License
+This work is distributed for free under a GPL version 3 open-source license.
 
 Contributers
 [@FrankCohen](https://www.reddit.com/user/frankcohen), [@SmittyHalibut](https://www.reddit.com/user/SmittyHalibut/), [@RedNax67](@https://www.reddit.com/user/RedNax67/)
