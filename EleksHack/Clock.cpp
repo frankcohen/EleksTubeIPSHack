@@ -29,6 +29,20 @@ void Clock::loop() {
   }
 }
 
+void Clock::forceNTPUpdate()
+{
+  time_t ntp_now, rtc_now;
+  rtc_now = RTC.get();
+
+  Serial.print("Getting NTP.");
+  ntpTimeClient.forceUpdate();
+  Serial.print(".");
+  ntp_now = ntpTimeClient.getEpochTime();
+  Serial.println(" Done.");
+
+  // Sync the RTC to NTP
+  RTC.set(ntp_now);  
+}
 
 // Static methods used for sync provider to TimeLib library.
 time_t Clock::syncProvider() {

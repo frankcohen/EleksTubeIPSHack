@@ -1,14 +1,31 @@
+/*
+ * Alterantive firmware for the EleksTubeIPS digital clock 
+ * 
+ * Instructions to build this sketch are found at
+ * https://github.com/frankcohen/EleksTubeIPSHack/blob/main/README.md
+ * 
+ * Licensed under GPL v3
+ * (c) Frank Cohen, All rights reserved. fcohen@votsh.com
+ * Read the license in the license.txt file that comes with this code.
+ * May 24, 2021
+ * 
+ */
+
 #include <WiFi.h>
 #include <WebServer.h>
 #include <WiFiClient.h>
 #define FS_NO_GLOBALS
 #include <FS.h>
-#include "SPIFFS.h"  // For ESP32 only
 #include "Hardware.h"
 #include "ChipSelect.h"
 #include "TFTs.h"
 #include "time.h"
 #include "Clock.h"
+
+// Don't use SPIFFS, it's deprecated, use LittleFS instead
+//https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#spiffs-deprecation-warning
+// From Arduino IDE Library Manager install LittleFS_esp32
+#include <LITTLEFS.h> 
 
 /* SSID & Password for the EleksTube to be a Web server */
 const char* ssid = "EleksHack";  // Enter SSID here
@@ -55,13 +72,16 @@ void updateClockDisplay(TFTs::show_t show) {
   tfts.setDigit(MINUTES_ONES, uclock.getMinutesOnes(), show);
   tfts.setDigit(SECONDS_TENS, uclock.getSecondsTens(), show);
   tfts.setDigit(SECONDS_ONES, uclock.getSecondsOnes(), show);
-}
 
-void setupMenu() {
-  tfts.chip_select.setHoursTens();
-  tfts.setTextColor(TFT_WHITE, TFT_BLACK);
-  tfts.fillRect(0, 120, 135, 120, TFT_BLACK);
-  tfts.setCursor(0, 124, 4);
+  Serial.print( "time: " );
+  Serial.print( uclock.getHoursTens() );
+  Serial.print( uclock.getHoursOnes() );
+  Serial.print( ":" );
+  Serial.print( uclock.getMinutesTens() );
+  Serial.print( uclock.getMinutesOnes() );
+  Serial.print( ":" );
+  Serial.print( uclock.getSecondsTens() );
+  Serial.println( uclock.getSecondsOnes() );  
 }
 
 // Borrowed from https://github.com/zenmanenergy/ESP8266-Arduino-Examples/blob/master/helloWorld_urlencoded/urlencode.ino
@@ -164,6 +184,10 @@ void setup() {
 
   pinMode(27, OUTPUT);
   digitalWrite(27, HIGH);
+
+  if(!LITTLEFS.begin()){
+      Serial.println("LITTLEFS/SPIFFS begin failed");
+  }
   
   tfts.begin();
   tfts.fillScreen(TFT_BLACK);
@@ -199,14 +223,13 @@ void setup() {
   server.on("/movies", HTTP_GET, handle_movies);
   server.on("/manage", HTTP_GET, handle_manage);
   server.on("/clock", HTTP_GET, handle_clock);
-  server.on("/clockupdate", HTTP_GET, handle_clockupdate);
-  //server.on("/upload", HTTP_POST, handle_upload);
-  
-  server.on("/upload",  HTTP_POST,[](){ server.send(200);}, handle_upload);
-
+  server.on("/clockupdate", HTTP_POST, handle_clockupdate);
+  server.on("/favicon.ico", HTTP_GET, handle_favicon);
+  server.on("/upload", HTTP_POST, [](){ server.send(200, "text/plain", "");}, handle_upload);
   server.on("/uploadform", HTTP_GET, handle_uploadform);
   server.on("/success", HTTP_GET, handle_success);
   server.on("/delete", HTTP_GET, handle_delete);
+  server.on("/format", HTTP_GET, handle_format);
 
   server.begin();
   Serial.println("Ready");
@@ -218,27 +241,54 @@ void setup() {
   Serial.println( "setup() done" );
 }
 
+void handle_favicon()
+{
+  server.send(404, "text/html", "No favicon here" );   
+}
+
 void handle_NotFound()
 {
   Serial.println("handle_NotFound()");
   
+  Serial.print("server.uri()=");
+  Serial.println( server.uri() );
+  
   String resp = "";
-  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:40px; background-color:powderblue;}</style>";
   resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
   resp +="<h1>EleksHack Control</h1><br><br>";
   resp += "No handler for that URL";
+  resp += server.uri();
   resp +="</body>\n";
   resp +="</html>\n";
-    
+  
   server.send(200, "text/html", resp ); 
 }
+
+void handle_format(){
+  Serial.println("handle_connectwifi()");
+
+  String resp = "";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:40px; background-color:powderblue;}</style>";
+  resp +="<title>EleksHack Controller</title>\n";
+  resp +="</head><body>";
+  resp +="<h1>Formatted SPIFFS file system</h1><br><br>";
+
+  LITTLEFS.format();
+
+  resp +="<p>Done</p>";
+
+  resp +="</body>\n";
+  resp +="</html>\n";
+}
+
 
 void handle_connectwifi() {
   Serial.println("handle_connectwifi()");
 
   String resp = "";
-  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:40px; background-color:powderblue;}</style>";
   resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
   resp +="<h1>EleksHack Control</h1><br><br>";
@@ -276,7 +326,7 @@ void handle_getpassword(){
   Serial.println("handle_choosenetwork()");
 
   String resp = "";
-  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:40px; background-color:powderblue;}</style>";
   resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
   resp +="<h1>EleksHack Control</h1><br><br>";
@@ -303,7 +353,7 @@ void handle_connect(){
   Serial.println("handle_connect()");
 
   String resp = "";
-  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:40px; background-color:powderblue;}</style>";
   resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
   resp +="<h1>EleksHack Control</h1><br><br>";
@@ -371,7 +421,7 @@ void handle_menu()
   Serial.println( "Handle Menu" );
 
   String resp = "";
-  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:40px; background-color:powderblue;}</style>";
   resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
   resp +="<h1>EleksHack Control</h1><br><br>";
@@ -396,25 +446,26 @@ void handle_menu()
 void handle_manage()
 {
   String resp = "";
-  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:40px; background-color:powderblue;}</style>";
   resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
   resp +="<h1>EleksHack Control</h1><br><br>";
 
-  resp +="<p><a href=\"/uploadform\">Upload</a></p><br><br>";
+  resp +="<p><a href=\"/uploadform\">Upload</a></p><br>";
+  resp +="<p><a href=\"/format\">Format SPIFFs file system</a></p><br>";
 
   resp +="<br><br><p><a href=\"/\">Menu</a></p>";
 
   resp +="<br><br>totalBytes=";
-  resp +=SPIFFS.totalBytes();
+  resp +=LITTLEFS.totalBytes();
   resp +=", usedBytes=";
-  resp +=SPIFFS.usedBytes();
+  resp +=LITTLEFS.usedBytes();
   resp +=", freeBytes=";
-  resp +=SPIFFS.totalBytes() - SPIFFS.usedBytes();
+  resp +=LITTLEFS.totalBytes() - LITTLEFS.usedBytes();
   resp +="<br><br>";
 
   String path = "/";
-  File root = SPIFFS.open(path);
+  File root = LITTLEFS.open(path);
   path = String();
 
   if(root.isDirectory()){
@@ -460,7 +511,7 @@ void handle_images()
   }
   
   String resp = "";
-  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:40px; background-color:powderblue;}</style>";
   resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
   resp +="<h1>EleksHack Control</h1><br><br>";
@@ -504,7 +555,7 @@ void handle_clock()
   Serial.println(" Done.");
     
   String resp = "";
-  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:40px; background-color:powderblue;}</style>";
   resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
   resp +="<h1>EleksHack Control</h1><br><br>";
@@ -523,7 +574,7 @@ void handle_clock()
 
   resp += "<br><br><p>Clock settings</p>";
 
-  resp += "<form action='/handle_clockupdate'>";
+  resp += "<form action=\"/clockupdate\" method=\"post\">";
   resp += "Timezone: <input size=\"10\" name=\"timezone\" value=\"-7\"><br>";
   resp += "Daylight savings adjustment: <input size=\"10\" name=\"daylight\" value=\"0" + server.arg("ssid") + "\">";
   resp += "<br>";
@@ -545,7 +596,7 @@ void handle_clock()
 void handle_clockupdate()
 { 
   String resp = "";
-  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:40px; background-color:powderblue;}</style>";
   resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
   resp +="<h1>EleksHack Control</h1><br><br>";
@@ -558,20 +609,15 @@ void handle_clockupdate()
   Serial.println( daylightOffset_sec );
 
   struct tm timeinfo;
-  if(!getLocalTime(&timeinfo)){
-    Serial.println("Failed to obtain time");
-    resp +="<br><p>Failed to get time from NTP service. Check <a href=\"/wifi\">connection to WiFi</a></p>";
-  }
-  else
-  {
-    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  getLocalTime(&timeinfo);
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  
+  uclock.forceNTPUpdate();
+  uclock.setTimeZoneOffset( gmtOffset_sec );
+  uclock.adjustTimeZoneOffset( daylightOffset_sec );
 
-    uclock.setTimeZoneOffset( gmtOffset_sec );
-    uclock.adjustTimeZoneOffset( daylightOffset_sec );
-
-    Serial.println( "TimeZone and Daylight offsets set" );
-    resp +="<br><p>TimeZone and Daylight offsets set.</p>";
-  }
+  Serial.println( "TimeZone and Daylight offsets set" );
+  resp +="<br><p>TimeZone and Daylight offsets set.</p>";
 
   resp +="<br><br><p><a href=\"/\">Menu</a></p>";
 
@@ -589,7 +635,7 @@ void handle_movies()
   }
   
   String resp = "";
-  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:40px; background-color:powderblue;}</style>";
   resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
   resp +="<h1>EleksHack Control</h1><br><br>";
@@ -616,7 +662,7 @@ void handle_movies()
 void handle_uploadform()
 {
   String resp = "";
-  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:40px; background-color:powderblue;}</style>";
   resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
   resp +="<h1>EleksHack Control</h1><br><br>";
@@ -629,11 +675,11 @@ void handle_uploadform()
   resp +="</form>";
 
   resp +="<br><br>totalBytes=";
-  resp +=SPIFFS.totalBytes();
+  resp +=LITTLEFS.totalBytes();
   resp +=", usedBytes=";
-  resp +=SPIFFS.usedBytes();
+  resp +=LITTLEFS.usedBytes();
   resp +=", freeBytes=";
-  resp +=SPIFFS.totalBytes() - SPIFFS.usedBytes();
+  resp +=LITTLEFS.totalBytes() - LITTLEFS.usedBytes();
   
   resp +="<br><br><p><a href=\"/\">Menu</a></p>";
 
@@ -654,48 +700,51 @@ String getContentType(String filename) { // convert the file extension to the MI
 }
 
 void handle_upload()
-{
-  Serial.println("handle_upload");
-  
-  Serial.print( "SPIFFS totalBytes=" );
-  Serial.print( SPIFFS.totalBytes() );
-  Serial.print( ", usedBytes=" );
-  Serial.print( SPIFFS.usedBytes() );
-  Serial.print( ", free bytes=" );
-  Serial.println( SPIFFS.totalBytes() - SPIFFS.usedBytes() );
-
+{  
   HTTPUpload& upload = server.upload();
 
   if( upload.status == UPLOAD_FILE_START )
   {
     Serial.println( "UPLOAD_FILE_START" );
+    Serial.print( "LITTLEFS totalBytes=" );
+    Serial.print( LITTLEFS.totalBytes() );
+    Serial.print( ", usedBytes=" );
+    Serial.print( LITTLEFS.usedBytes() );
+    Serial.print( ", free bytes=" );
+    Serial.println( LITTLEFS.totalBytes() - LITTLEFS.usedBytes() );
     
     String filename = upload.filename;
     if(!filename.startsWith("/")) filename = "/"+filename;
     
     Serial.print("handle_upload Name: "); 
     Serial.println(filename);
-    Serial.print(", size ");
-    Serial.println( upload.totalSize );
     
-    fsUploadFile = SPIFFS.open(filename, "w");            // Open the file for writing in SPIFFS (create if it doesn't exist)
+    fsUploadFile = LITTLEFS.open(filename, "w");            // Open the file for writing in SPIFFS (create if it doesn't exist)
     filename = String();
   } 
   else if (upload.status == UPLOAD_FILE_WRITE)
   {
     Serial.println( "UPLOAD_FILE_WRITE" );
     
-    if(fsUploadFile)
-      fsUploadFile.write(upload.buf, upload.currentSize); // Write the received bytes to the file
+    // Write the received bytes to the file
+    int stat = 0;
+    if(fsUploadFile) { stat = fsUploadFile.write(upload.buf, upload.currentSize); };
+
+    Serial.print( "wrote " );
+    Serial.print( upload.currentSize );
+    Serial.print( " bytes, stat = " );
+    Serial.println( stat );
   } 
   else if (upload.status == UPLOAD_FILE_END)
   {
     Serial.println( "UPLOAD_FILE_END" );
 
+    Serial.print( "upload.totalSize = " );
+    Serial.println( upload.totalSize );
+
     if(fsUploadFile) 
     {                                    // If the file was successfully created
-      fsUploadFile.close();                               // Close the file again
-      
+      fsUploadFile.close();
       server.sendHeader("Location","/success");      // Redirect the client to the success page
       server.send(303);
     }
@@ -709,7 +758,7 @@ void handle_upload()
 void handle_success()
 {
   String resp = "";
-  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:40px; background-color:powderblue;}</style>";
   resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
   resp +="<h1>EleksHack Control</h1><br><br>";
@@ -731,7 +780,7 @@ void handle_success()
 void handle_delete()
 {
   String resp = "";
-  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:60px; background-color:powderblue;}</style>";
+  resp +="<html><head><style>html { font-family: Bitter; color:blue; display: inline-block; margin: 0px auto; text-align: left; font-size:40px; background-color:powderblue;}</style>";
   resp +="<title>EleksHack Controller</title>\n";
   resp +="</head><body>";
   resp +="<h1>EleksHack Control</h1><br><br>";
@@ -740,7 +789,7 @@ void handle_delete()
   resp += urldecode( server.arg("file") );
   resp +="</p>";
 
-  if ( SPIFFS.remove( urldecode( server.arg("file") ) ) )
+  if ( LITTLEFS.remove( urldecode( server.arg("file") ) ) )
   {
     resp +="<p>File deleted</p><br><br>";
     Serial.println("File deleted");

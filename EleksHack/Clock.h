@@ -25,6 +25,9 @@ public:
   // This has to be static to pass to TimeLib::setSyncProvider.
   static time_t syncProvider();
 
+  // Same as syncProvider, but forces NTP update and sync with RTC
+  void forceNTPUpdate();
+
   // Set preferred hour format. true = 12hr, false = 24hr
   void setTwelveHour(bool twelve_hour_) { config->twelve_hour = twelve_hour_; }
   bool getTwelveHour()                  { return config->twelve_hour; }

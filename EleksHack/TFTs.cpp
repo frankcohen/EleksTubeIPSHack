@@ -1,4 +1,5 @@
 #include "TFTs.h"
+#include <LITTLEFS.h> 
 
 void TFTs::begin() {
   // Start with all displays selected.
@@ -10,17 +11,12 @@ void TFTs::begin() {
   enableAllDisplays();
 
   // Initialize the super class.
-  init();
-  
-  // Set SPIFFS ready
-  if (!SPIFFS.begin()) {
-    Serial.println("SPIFFS initialization failed!");
-  }
+  init();  
 }
 
 void TFTs::beginJpg()
 {
-  root = SPIFFS.open("/");  
+  root = LITTLEFS.open("/");  
 }
 
 int TFTs::EndsWith(const char *str, const char *suffix)
@@ -42,7 +38,7 @@ void TFTs::showNextJpg()
     fs::File file = root.openNextFile();
     if (! file)
     {
-      root = SPIFFS.open("/"); 
+      root = LITTLEFS.open("/"); 
     }
     else
     {
@@ -90,7 +86,7 @@ void TFTs::chooseRandomDisplay()
 void TFTs::drawSdJpeg(const char *filename, int xpos, int ypos) {
 
   // Open the named file (the Jpeg decoder library will close it)
-  fs::File jpegFile = SPIFFS.open( filename, FILE_READ);  // or, file handle reference for SD library
+  fs::File jpegFile = LITTLEFS.open( filename, FILE_READ);  // or, file handle reference for SD library
  
   if ( !jpegFile ) {
     Serial.print("ERROR: File \""); Serial.print(filename); Serial.println ("\" not found!");
@@ -284,7 +280,7 @@ bool TFTs::drawBmp(const char *filename, int16_t x, int16_t y) {
   fs::File bmpFS;
 
   // Open requested file on SD card
-  bmpFS = SPIFFS.open(filename, "r");
+  bmpFS = LITTLEFS.open(filename, "r");
 
   if (!bmpFS)
   {

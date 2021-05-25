@@ -25,6 +25,15 @@ Builds on Arduino IDE 1.8.13 on MacOS 11.3.1. Choose Tools -> Board -> ESP Ardui
 
 More details on how this works on the way!
 
+Next steps
+
+Implement HTTPS to protect Wifi connection passwords
+https://esp32.com/viewtopic.php?t=19452
+
+Let the ESP32 select Wifi connections based on signal strength and availability
+https://diyprojects.io/esp32-how-to-connect-local-wifi-network-arduino-code/#.YKxQz5NKiog
+
+
 License
 This work is distributed for free under a GPL version 3 open-source license.
 
