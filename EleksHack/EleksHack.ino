@@ -176,9 +176,17 @@ void setup() {
   smartDelay(2000);
 
   Serial.println();
-  Serial.println( "Eleks Experiment" );
-  Serial.println( "Slideshow" );
-  Serial.println( "Randomly shows JPGs" );
+  Serial.println( "EleksTube IPS Alternative Firmware" );
+  Serial.println();
+
+  Serial.print( Starting Wifi Access Point, connect to: " );
+  Serialprint( ssid );
+  Serial.print( ", using password: " );
+  Serial.println( password );
+  Serial.print( "Upon connection point your browser to: );
+  Serial.print( "192,168,1,1" );
+  Serial.print( " to view the main menu." );
+  Serial.println( "The gateway is at 192,168,1,1 and subnet mask is 255,255,255,0" );
   
   randomSeed(analogRead(0));
 
@@ -366,6 +374,7 @@ void handle_connect(){
   char myspass[ pwlen ];  
   server.arg("pass").toCharArray( myspass, pwlen );
 
+  Serial.println( "Connected to Wifi network: " );
   Serial.print( "ssid = " );
   Serial.print( myssid );
   Serial.print( " password = " );
