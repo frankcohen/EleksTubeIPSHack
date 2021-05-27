@@ -179,11 +179,11 @@ void setup() {
   Serial.println( "EleksTube IPS Alternative Firmware" );
   Serial.println();
 
-  Serial.print( Starting Wifi Access Point, connect to: " );
-  Serialprint( ssid );
+  Serial.print( "Starting Wifi Access Point, connect to: " );
+  Serial.print( ssid );
   Serial.print( ", using password: " );
   Serial.println( password );
-  Serial.print( "Upon connection point your browser to: );
+  Serial.print( "Upon connection point your browser to:" );
   Serial.print( "192,168,1,1" );
   Serial.print( " to view the main menu." );
   Serial.println( "The gateway is at 192,168,1,1 and subnet mask is 255,255,255,0" );
