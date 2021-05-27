@@ -822,6 +822,7 @@ void loop() {
   if ( playImages )
   {
     tfts.showNextJpg();
+    smartDelay(2000);
   }
 
   if ( playVideos )
@@ -833,7 +834,7 @@ void loop() {
   {
     uclock.loop();
     updateClockDisplay(TFTs::yes);  
+    smartDelay(250);
   }
 
-  smartDelay(2000);
 }
