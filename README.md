@@ -1,5 +1,4 @@
-# ElekstubeIPSHack
-Hacking the Elekstube IPS ESP32 TFT based clock
+# ElekstubeIPSHack - Hacking the Elekstube IPS ESP32 TFT based clock
 
 [EleksTube IPS](https://www.banggood.com/Pseudo-glow-Tube-Programmable-Display-IPS-Screen-RGB-Clock-Desktop-Creative-Ornaments-Digital-Clock-Colorful-LED-Picture-Display-p-1789259.html?rmmds=myorder&cur_warehouse=CN) is an ESP32-based digital clock. It appears to be the first in a wave of new 32-bit network-enabled multiple display products.
 
@@ -17,43 +16,219 @@ I'd also like to build some new experiences with it:
 - Uploading images and video to the clock from a Web browser
 - Configuration of time, Wifi access, start-up animation from a Web browser
 
-I started a discussion [Hacking the EleksTube IPS Clock - anyone tried it?](https://www.reddit.com/r/arduino/comments/mq5td9/hacking_the_elekstube_ips_clock_anyone_tried_it/) on Reddit. [@SmittyHalibut](https://www.reddit.com/user/SmittyHalibut/), [@RedNax67](@https://www.reddit.com/user/RedNax67/), and others worked to build an open-source firmware. @SmittyHalibut's firmware is [here](https://github.com/SmittyHalibut/EleksTubeHAX). It uses the ESP32 SPIFFS filesystem to store images. And it implments class libraries for buttons, backlights, RTC, and displays.
+I started a discussion [Hacking the EleksTube IPS Clock - anyone tried it?](https://www.reddit.com/r/arduino/comments/mq5td9/hacking_the_elekstube_ips_clock_anyone_tried_it/) on Reddit. [@SmittyHalibut](https://www.reddit.com/user/SmittyHalibut/), [@RedNax67](https://www.reddit.com/user/RedNax67/), and others worked to build an open-source firmware. @SmittyHalibut's firmware is [here](https://github.com/SmittyHalibut/EleksTubeHAX). It uses the ESP32 SPIFFS filesystem to store images. And it implments class libraries for buttons, backlights, RTC, and displays.
 
+## Using EleksHack Alternative Firmware
 
+This repository is an alternative firmware for the clock. Compile the firmware from source code using the instructions below, or upload the compiled firmware image (from /bin in this repository) to your clock. The clock has 2 USB C ports, plug a cable between your computer and the clock, then use Arduino IDE to build and upload the /EleksHack/ElecksHack.ino sketch.
 
-Rough docs:
+### Uploading the pre-compiled binary
 
-I needed two things to happen: deliver a Web interface so we wouldn't have to use the physical buttons on the clock, and let the clock connect to a NTP server over the Internet to get the time. ESP32 supports both, at the same time!
+As an easy alternative to compiling the source code, the /bin directory has an [Esptool](https://github.com/espressif/esptool) created binary file.
 
-Upon start-up the clock is a Wifi access point with the SSID of EleksHack and the password thankyou. Point your browser to 192.168.1.1 to view the main menu. On your recommendation I added these details to the serial monitor output as it starts. And it prints the connected Wifi addresses to the serial monitor when the station mode connects. ESP32 has a cool feature to be both access point and station concurrently!
+We recommend you make a backup of your clock's original firmware before taking any of these steps. Use this command:
 
-If you did nothing more at this point the clock will run on the value stored in the Real Time Clock chip. To see the clock, click the Play Clock link in the menu in your browser.
+pythong esptool.py -b 115200 --port /dev/cu.usbserial-141210 read_flash 0x00000 0x400000 flash_4M.bin
 
-To get the time from the NTP server, create a Wifi connection from the clock to your nearby Wifi access point. Click Connect To Wifi from the menu. Your browser shows a scan of available Wifi networks. Click on one, enter a password, and connect. Once connected the NTP server time updates the clock time and the time stored in the RTC.
+Then, upload the binary to the clock using this command:
 
-NOTE: This form transmits passwords in clear text. There is no security. I recommend you use a Wifi station with no password. Or, do not use this control. There are plenty of ways to secure the password transmission from snooping, you're welcome to implement one.
+python esptool.py -b 115200 --port /dev/cu.usbserial-141210 write_flash --flash_freq 80m 0x000000 elekshack.bin
 
-Also, there is a bug in my code when using the StoredConfig library. So the unit does not save the passwords, Wifi connections, or play mode between hard resets. I would be grateful for you to fix that.
+## Accessing The Menu
+
+Upon start-up the clock is a Wifi access point with the SSID of EleksHack and the password thankyou. Point your browser to [192.168.1.1](http://192.168.1.1) to view the main menu.
 
 The clock has 2 shows: Play Clock, Play Images. The clock show is the normal EleksTube IPS clock display. The image show displays a random JPG formatted image on a random display (of the 6 displays).
 
-Play Clock requires the digits of the clock to be stored in BMP format. For example, /1.bmp is the image file for the number 1. Use the Menu command Manage Media and the Upload function to store a BMP formatted file to the internal (SPIFFS) file system. Manage Media also shows the files in the file system, and the delete link removes the file. Nixie tube looking BMP files are in the /data directory of the source repository.
+### Play Clock ###
+Requires the digits of the clock to be stored in BMP format. For example, /1.bmp is the image file for the number 1. Use the Menu command Manage Media and the Upload function to store a BMP formatted file to the internal (SPIFFS) file system. Manage Media also shows the files in the file system, and the delete link removes the file. Nixie tube looking BMP files are in the /EleksHack/data directory of the source repository.
 
-EleksTube IPS ships with SPIFFS formatted using the old and deprecated SPIFFS library. My code uses the replacement for SPIFFS library... called LittleFS. In the Manage Media page use the Format SPIFFs File System before uploading images.
+EleksTube IPS ships with SPIFFS formatted using the old and deprecated SPIFFS library. The alternative firmware uses the replacement for SPIFFS library... called LittleFS. In the Manage Media page use the Format SPIFFs File System before uploading images.
 
+By default the clock runs in the 'Play Clock' show. The firmware will display the value stored in the Real Time Clock chip. If you do not see the clock images on the displays you will need to upload the image files to the clock. Use the Manage Media command in the main menu (in your browser). Upload the images from the /EleksHack/data directory.
+
+To get the time from a Network Time Protocol (NTP) server on the Internet, create a Wifi connection from the clock to your nearby Wifi access point. Click Connect To Wifi from the menu. Your browser shows a scan of available Wifi networks. Click on one, enter a password, and connect. Once connected the NTP server time updates the clock time and stores the time value in the Real Time Clock chip (RTC).
+
+**NOTE:** The Connect To Wifi page transmits passwords in clear text. There is no security. I recommend you use a Wifi station with no password. Or, do not use this control.
+
+### Play Images ###
 Play Images is something I personally wanted. I use it to randomly show pictures of my children. Both my children are in love and life is good! Click Play Images from the main menu, then click Play. It picks a JPG image from the file system approximately every 2 seconds.
 
-Lastly, I haven't seen a time-out when using the Web UX. Would you please let me know more. Glad to help fix whatever I broke.
+## Installation
 
 
+## How to build this firmware
+Unfortunately building this firmware from the source code is not as easy as: Arduino IDE 1.8.13 on MacOS 11.3.1. Choose Tools -> Board -> ESP Arduino (in sketchbook) -> ESP Dev Module. Set Tools -> Upload speed to 115200. There are many dependencies on external libraries:
 
-Installation
+### Download the source code
 
-Builds on Arduino IDE 1.8.13 on MacOS 11.3.1. Choose Tools -> Board -> ESP Arduino (in sketchbook) -> ESP Dev Module. Set Tools -> Upload speed to 115200.
+Use the Code pop-up menu in Github and select the Download Zip command. Extract the source code from the Zip file.
 
-More details on how this works on the way!
+### Setup Arduino IDE
+I use [Arduino IDE 1.8.13](https://www.arduino.cc/). Please let me know if it does not work on versions before or later.
 
-Next steps
+### Windows device driver
+Windows users should follow Arduino IDE instructions to install device drivers to use the USB ports to communicate with the clock.
+
+### Install ESP32 board support from Espressif
+Follow instructions to add ESP32 support to Arduino IDE at:
+https://github.com/espressif/arduino-esp32/blob/master/docs/arduino-ide/mac.md
+
+Software drivers and utilities for ESP32 are at:
+https://github.com/espressif/arduino-esp32
+https://github.com/nodemcu/nodemcu-firmware/tree/dev-esp32
+
+On MacOS 11.3.1 I needed to patch esptool.py following https://github.com/espressif/arduino-esp32/issues/4408 and changing the +x perms too
+
+In Arduino IDE use ESP32 Dev Board as Board selection. The default configs in the Tools menu should be fine. The important ones are:
+* Flash Size: 4MB
+* Partition Scheme: Any that includes at least 1MB for SPIFFS.  I use the "Default 4MB: 1.2MB App, 1.5MB SPIFFS" one.
+* Port: Set it to whatever serial port your clock shows up as when plugged in.
+
+### Install Libraries
+All these libraries are in Library Manager.  Several libraries have very similar names, so make sure you select the correct one based on the author.
+The listed "developed on" versions are just the versions I had installed while developing this code.  Newer (or possibly older) versions should be fine too.
+
+Sketch -> Include Library -> Library Manager
+* `NTPClient` by Fabrice Weinberg (developed on v3.2.0)
+* `Adafruit NeoPixel` by Adafruit (developed on v1.8.0)
+* `DS1307RTC` by Michael Margolis (developed on v1.4.1)
+* `TFT_eSPI` by Bodmer (developed on v2.3.61)
+* `Time` by Michael Margolis (developed on v1.6.0)
+* `LittleFS' by lorol (developed on v1.0.6)
+* `Jpeg decoder library`, version Apr 24, 2021 at https://github.com/Bodmer/TJpg_Decoder
+
+### Configure the `TFT_eSPI` library
+**IMPORTANT** You have to do this after every time you install or update the `TFT_eSPI` library!  **IMPORTANT**
+
+The full documentation for this is in the `TFT_eSPI` library, but tl,dr:
+* Edit `Arduino/libraries/TFT_eSPI/User_Setup_Select.h`
+* Comment out all `#include` lines.  (The only one that comes from install is `#include <User_Setup.h>`.)
+* Add a `#include` line pointing to `User-Setup.h` in this code.
+  * eg: `#include </home/foo/src/EleksTubeHAX/EleksTubeHAX/User_Setup.h>`
+  * Obviously, update the path to point to where ever you keep your code.  Mac and Windows paths will look very different.
+
+### Restart Arduino
+After installing the ESP32 support, all the libraries, restart Arduino to make sure it knows its all there.
+
+### Upload New Firmware
+Use the Arduino IDE Upload command to compile and upload the firmware to your clock. Compile (Ctrl-R) and Upload (Ctrl-U) the code.  At this point, it should upload cleanly and successfully.  You'll see the clock boot up messages on the 6 displays on the clock. The clock doesn't have any bitmaps to display on the screen yet.
+
+### Debug Logging to the Serial Monitor
+Use Arduino IDE Serial Monitor to view debugging details as the clock operates. For example, the alternative firmware prints the connected Wifi addresses to the serial monitor when the station mode connects.
+
+### Upload Bitmaps
+The repository comes with a set of BMP files, nixie tubes from the original firmware, in the `/EleksHack/data` directory. Connect to the clock's Wifi access point, use the main menu, Manage Media command, and upload the bitmaps.
+
+### Custom Bitmaps (Optional)
+If you want to change these:
+
+* Create your own BMP files.  Resolution must be 135x240 pixels, 24bit RGB.
+* Name them `0.bmp` through `9.bmp` and put them in the `data/` directory.
+
+Then use the Manage Media command to upload.
+
+# Development Process:
+## Original Firmware
+Check in [original-firmware/](original-firmware/) for a direct dump of the firmware as I received my clock, and instructions for how to restore it to the clock.  This is useful if you're hacking around and get some non-working code, and just want to restore it to original.
+
+## Unpacking BMPs from original firmware
+Download and unpack the original software (link above).  It contains a directory called `IPSimages/` which contains several pre-made SPIFFS images full of the BMPs available in the original software.  You can see what they all look like in the `gallery/` directory, same numbers.
+
+To unpack one of these SPIFFS images into the original BMPs:
+* Make a destination directory, eg: `unpacked/`
+* Run: `mkspiffs -u unpacked/ [image].bin`
+  * This assumes you've already installed ESP32 support in Arduino. `mkspiffs` comes with the ESP32 tools.  On my Linux system, it's in `~/.arduino15/packages/esp32/tools/mkspiffs/0.2.3/mkspiffs`.
+  * If you're on Windows, the IPS software also comes with `mkspiffs.exe` which I assume works the same way, but I haven't confirmed.
+
+This puts 12 files in `unpacked/`:
+* `0.bmp` through `9.bmp` which are 135x240px 24 bit BMPs for the 10 digits
+* `month.bmp` and `date.bmp` another couple BMPs, but I'm not sure where they're ever used.  We won't need these in our firmware, so they can be deleted.
+
+# Documentation
+## Hardware
+* Microcontroller: ESP32-WROOM-32D
+  * [Datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-wroom-32d_esp32-wroom-32u_datasheet_en.pdf)
+  * [Technical Reference Manual](https://www.espressif.com/sites/default/files/documentation/esp32_technical_reference_manual_en.pdf)
+* Displays: [TFT 1.14" 135x240](https://www.aliexpress.com/item/32564432870.html)  (includes pinout of ribbon connector)
+  * ST7789 controller [Datasheet](https://www.rhydolabz.com/documents/33/ST7789.pdf)
+* RGB LED: SK6812 side emmitting
+  * [Datasheet](http://www.ledlightinghut.com/files/SK6812%20side%204020.pdf)
+  * NeoPixel/WS2812 compatible.
+
+## Libraries
+* Talking to displays: [TFT_eSPI](https://github.com/Bodmer/TFT_eSPI)
+* Real Time Clock: [DS3231 RTC](https://circuitdigest.com/microcontroller-projects/esp32-real-time-clock-using-ds3231-module)
+* NeoPixel library for RGB LEDs (link coming)
+
+# Hardware
+My (SmittyHalibut) notes from reverse engineering the board
+
+## Display boards
+The card edge connector has 13 connection points on each side, but both sides are tied together, so there are only 13 unique pins.
+
+The socket on the board is oriented so that Pin 1 is on the RIGHT SIDE (look for the little arrow on the top of the socket.)  So
+the documentation below is RIGHT TO LEFT.
+
+1. WS2812 In
+2. WS2812 Out
+3. TFT pin 5, SDA, ESP32 pin 37, IO23, VSPID
+4. TFT pin 6, SCL, ESP32 pin 30, IO18, VSPICLK
+5. TFT pin 4, RS (Register Select, or DC Data Command), ESP32 pin 10, IO25
+6. TFT pin 3, RESET (active low),  ESP32 pin 11, IO26
+7. TFT pin 8, Chip Select, driven by 74HC595
+8. WS2812, GND (Tied to 13)
+9. N/C
+10. TFT pin 1 and 7, Vdd and LEDA (Tied to 12)
+11. TFT pin 2, GND
+  * Tied to system ground through a MOSFET, controlled by ESP32 pin 12, IO27, so the displays can be completely turned off.
+  * (If I (SmittyHalibut) were doing this, I'd have used a P channel MOSFET and controlled LEDA, which would allow dimming as well as completely shutting it off. Oh well.)
+12. TFT pin 1 and 7, Vdd and LEDA (Tied to 10)
+13. WS2812, GND  (Tied to 8)
+
+## Chip Select Shift Register
+There's a [74HC595](https://www.arduino.cc/en/Tutorial/Foundations/ShiftOut)
+([datasheet](https://www.arduino.cc/en/uploads/Tutorial/595datasheet.pdf))
+that drives the 6 SPI Chip Select lines on the displays.  Chip Select lines are Active Low,
+so write 1s to the displays you do NOT want to update, a 0 to the display you want to update.
+
+Q0 is the most recent bit written to the shift register, Q7 is the oldest bit written.
+
+Outputs:
+* Q0: Hour Tens
+* Q1: Hour Ones
+* Q2: Minute Tens
+* Q3: Minute Ones
+* Q4: Seconds Tens
+* Q5: Seconds Ones
+* Q6 and Q7: Unused, not connected.
+
+Inputs:
+* Ds (Data In): ESP32 pin 13, IO14, GPIO14
+* /OE (Output Enable): Strapped to Ground, always enabled.
+* STcp (Storage Register Clock Input): ESP32 pin 28, IO17, GPIO17
+* SHcp (Shift Register Clock Input): ESP32 pin 27, IO16, GPIO16
+
+## WS2812, Neopixel (?) RGB LEDs
+They only require a single GPIO pin to drive all 6 LEDs.  They are driven in reverse order, right to left.  The first LED is Seconds Ones, the sixth LED is Hours Tens.
+
+* ESP32 pin 14, IO12
+
+## Buttons
+All 4 buttons are externally pulled up (an actual 10k resistor!) and shorted to ground by the button.
+
+* `<<<`: ESP32 pin 9, IO33
+* `MODE`: ESP32 pin 8, IO32
+* `>>>`: ESP pin 7, IO35
+* `POWER`: ESP pin 6, IO34
+
+## RTC DS3231
+The DS3231 ([datasheet](https://datasheets.maximintegrated.com/en/ds/DS3231.pdf)) is an I2C device, and a very common one at that. Lots of good documentation and libraries already.
+
+* SCL: ESP32 pin 36, IO22
+* SDA: ESP32 pin 33, IO21
+
+## Next steps
 
 Implement HTTPS to protect Wifi connection passwords
 https://esp32.com/viewtopic.php?t=19452
@@ -61,11 +236,10 @@ https://esp32.com/viewtopic.php?t=19452
 Let the ESP32 select Wifi connections based on signal strength and availability
 https://diyprojects.io/esp32-how-to-connect-local-wifi-network-arduino-code/#.YKxQz5NKiog
 
-
-License
+## License
 This work is distributed for free under a GPL version 3 open-source license.
 
-Contributers
+## Contributers
 [@FrankCohen](https://www.reddit.com/user/frankcohen), [@SmittyHalibut](https://www.reddit.com/user/SmittyHalibut/), [@RedNax67](@https://www.reddit.com/user/RedNax67/)
 
 Please feel free to jump-in here. Make a contribution, make a fork, make a comment, open a bug report. The water is warm and all are welcome.
