@@ -52,9 +52,9 @@ TFTs tfts;    // Display module driver
 Clock uclock;
 StoredConfig stored_config;
 
-boolean playImages = true;
+boolean playImages = false;
 boolean playVideos = false;
-boolean playClock = false;
+boolean playClock = true;
 
 #define BGCOLOR    0xAD75
 #define GRIDCOLOR  0xA815
@@ -208,7 +208,9 @@ void setup() {
   tfts.println("Connect using WIFI");
   tfts.println("SSID: EleksHack");
   tfts.println("Password: thankyou");
-
+  tfts.println("then browse 192.168.1.1");
+  tfts.println("for a menu of commands");
+  
   smartDelay(500);
 
   WiFi.mode(WIFI_MODE_APSTA);
