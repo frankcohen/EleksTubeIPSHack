@@ -28,11 +28,35 @@ As an easy alternative to compiling the source code, the /bin directory has an [
 
 We recommend you make a backup of your clock's original firmware before taking any of these steps. Use this command:
 
-pythong esptool.py -b 115200 --port /dev/cu.usbserial-141210 read_flash 0x00000 0x400000 flash_4M.bin
+python esptool.py -b 115200 --port /dev/cu.usbserial-141210 read_flash 0x00000 0x400000 flash_4M.bin
 
-Then, upload the binary to the clock using this command:
+Replace the USB port above with your own. On my MacOS 11.3.1 and Arduino IDE 1.8.13 puts esptool.py at /Users/frankcohen/Documents/Arduino/hardware/espressif/esp32/tools/esptool.py. I change to that directory, then run the above command from a Terminal window. It appears as:
+
+```frankcohen@FCohenMac2020 tools % python esptool.py -b 115200 --port /dev/cu.usbserial-141210 read_flash 0x00000 0x400000 flash_4M.bin
+esptool.py v2.8
+Serial port /dev/cu.usbserial-141210
+Connecting....
+Detecting chip type... ESP32
+Chip is ESP32D0WDQ5 (revision 1)
+Features: WiFi, BT, Dual Core, 240MHz, VRef calibration in efuse, Coding Scheme None
+Crystal is 40MHz
+MAC: a4:e5:7c:47:20:dc
+Uploading stub...
+Running stub...
+Stub running...
+4194304 (100 %)
+4194304 (100 %)
+Read 4194304 bytes at 0x0 in 383.0 seconds (87.6 kbit/s)...
+Hard resetting via RTS pin...
+frankcohen@FCohenMac2020 tools %```
+
+Esptool.py creates a 4 Mbyte binary backup file of your clock's existing firmware.
+
+Then, upload the binary from this repository /EleksHack/bin/ to the clock using this command:
 
 python esptool.py -b 115200 --port /dev/cu.usbserial-141210 write_flash --flash_freq 80m 0x000000 elekshack.bin
+
+Replace the USB port above with your own.
 
 ## Accessing The Menu
 
@@ -54,10 +78,7 @@ To get the time from a Network Time Protocol (NTP) server on the Internet, creat
 ### Play Images ###
 Play Images is something I personally wanted. I use it to randomly show pictures of my children. Both my children are in love and life is good! Click Play Images from the main menu, then click Play. It picks a JPG image from the file system approximately every 2 seconds.
 
-## Installation
-
-
-## How to build this firmware
+# How to build this firmware
 Unfortunately building this firmware from the source code is not as easy as: Arduino IDE 1.8.13 on MacOS 11.3.1. Choose Tools -> Board -> ESP Arduino (in sketchbook) -> ESP Dev Module. Set Tools -> Upload speed to 115200. There are many dependencies on external libraries:
 
 ### Download the source code
