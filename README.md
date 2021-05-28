@@ -48,7 +48,8 @@ Stub running...
 4194304 (100 %)
 Read 4194304 bytes at 0x0 in 383.0 seconds (87.6 kbit/s)...
 Hard resetting via RTS pin...
-frankcohen@FCohenMac2020 tools %```
+frankcohen@FCohenMac2020 tools %
+```
 
 Esptool.py creates a 4 Mbyte binary backup file of your clock's existing firmware.
 
