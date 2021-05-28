@@ -61,7 +61,7 @@ Replace the USB port above with your own.
 
 ## Accessing The Menu
 
-Upon start-up the clock is a Wifi access point with the SSID of EleksHack and the password thankyou. Point your browser to [192.168.1.1](http://192.168.1.1) to view the main menu.
+Upon start-up the clock is a Wifi access point with the SSID of EleksHack and the password thankyou. Connect to the access point from your mobile or laptop device. Point your browser to [192.168.1.1](http://192.168.1.1) to view the main menu.
 
 The clock has 2 shows: Play Clock, Play Images. The clock show is the normal EleksTube IPS clock display. The image show displays a random JPG formatted image on a random display (of the 6 displays).
 
@@ -108,7 +108,7 @@ In Arduino IDE use ESP32 Dev Board as Board selection. The default configs in th
 * Port: Set it to whatever serial port your clock shows up as when plugged in.
 
 ### Install Libraries
-All these libraries are in Library Manager.  Several libraries have very similar names, so make sure you select the correct one based on the author.
+All these libraries are in Library Manager, except for the Jpeg decoder library that must be downloaded in Zip form and installed using Sketch -> Include Library -> Install from Zip in Arduino IDE.  Several libraries have very similar names, so make sure you select the correct one based on the author.
 The listed "developed on" versions are just the versions I had installed while developing this code.  Newer (or possibly older) versions should be fine too.
 
 Sketch -> Include Library -> Library Manager
@@ -121,17 +121,17 @@ Sketch -> Include Library -> Library Manager
 * `Jpeg decoder library`, version Apr 24, 2021 at https://github.com/Bodmer/TJpg_Decoder
 
 ### Configure the `TFT_eSPI` library
-**IMPORTANT** You have to do this after every time you install or update the `TFT_eSPI` library!  **IMPORTANT**
+**IMPORTANT** You have to do this after every time you install or update the `TFT_eSPI` library!
 
 The full documentation for this is in the `TFT_eSPI` library, but tl,dr:
 * Edit `Arduino/libraries/TFT_eSPI/User_Setup_Select.h`
 * Comment out all `#include` lines.  (The only one that comes from install is `#include <User_Setup.h>`.)
 * Add a `#include` line pointing to `User-Setup.h` in this code.
-  * eg: `#include </home/foo/src/EleksTubeHAX/EleksTubeHAX/User_Setup.h>`
-  * Obviously, update the path to point to where ever you keep your code.  Mac and Windows paths will look very different.
+  * eg: `#include </home/foo/src/EleksTubIPSHack/EleksHack/User_Setup.h>`
+  * Obviously, update the path to point to where ever you keep your code.  Mac and Windows paths will look different.
 
 ### Restart Arduino
-After installing the ESP32 support, all the libraries, restart Arduino to make sure it knows its all there.
+After installing the ESP32 support, all the libraries, restart Arduino IDE to make sure it knows everything is present.
 
 ### Upload New Firmware
 Use the Arduino IDE Upload command to compile and upload the firmware to your clock. Compile (Ctrl-R) and Upload (Ctrl-U) the code.  At this point, it should upload cleanly and successfully.  You'll see the clock boot up messages on the 6 displays on the clock. The clock doesn't have any bitmaps to display on the screen yet.
@@ -150,24 +150,8 @@ If you want to change these:
 
 Then use the Manage Media command to upload.
 
-# Development Process:
-## Original Firmware
-Check in [original-firmware/](original-firmware/) for a direct dump of the firmware as I received my clock, and instructions for how to restore it to the clock.  This is useful if you're hacking around and get some non-working code, and just want to restore it to original.
-
-## Unpacking BMPs from original firmware
-Download and unpack the original software (link above).  It contains a directory called `IPSimages/` which contains several pre-made SPIFFS images full of the BMPs available in the original software.  You can see what they all look like in the `gallery/` directory, same numbers.
-
-To unpack one of these SPIFFS images into the original BMPs:
-* Make a destination directory, eg: `unpacked/`
-* Run: `mkspiffs -u unpacked/ [image].bin`
-  * This assumes you've already installed ESP32 support in Arduino. `mkspiffs` comes with the ESP32 tools.  On my Linux system, it's in `~/.arduino15/packages/esp32/tools/mkspiffs/0.2.3/mkspiffs`.
-  * If you're on Windows, the IPS software also comes with `mkspiffs.exe` which I assume works the same way, but I haven't confirmed.
-
-This puts 12 files in `unpacked/`:
-* `0.bmp` through `9.bmp` which are 135x240px 24 bit BMPs for the 10 digits
-* `month.bmp` and `date.bmp` another couple BMPs, but I'm not sure where they're ever used.  We won't need these in our firmware, so they can be deleted.
-
 # Documentation
+
 ## Hardware
 * Microcontroller: ESP32-WROOM-32D
   * [Datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-wroom-32d_esp32-wroom-32u_datasheet_en.pdf)
@@ -184,7 +168,7 @@ This puts 12 files in `unpacked/`:
 * NeoPixel library for RGB LEDs (link coming)
 
 # Hardware
-My (SmittyHalibut) notes from reverse engineering the board
+@SmittyHalibut notes from reverse engineering the board
 
 ## Display boards
 The card edge connector has 13 connection points on each side, but both sides are tied together, so there are only 13 unique pins.
