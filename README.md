@@ -20,7 +20,7 @@ I started a discussion [Hacking the EleksTube IPS Clock - anyone tried it?](http
 
 ## Using EleksHack Alternative Firmware
 
-This repository is an alternative firmware for the clock. Compile the firmware from source code using the instructions below, or upload the compiled firmware image (from /bin in this repository) to your clock. The clock has 2 USB C ports, plug a cable between your computer and the clock, then use Arduino IDE to build and upload the /EleksHack/ElecksHack.ino sketch.
+This repository is an alternative firmware for the clock. Compile the firmware from source code using the instructions below, or upload the compiled firmware image (from /bin in this repository) to your clock. The clock has 2 USB C ports, plug a cable between your computer and the clock. Use Arduino IDE to compile and upload the /EleksHack/ElecksHack.ino sketch from the source code. Or follow the next section to upload the pre-built firmware.
 
 ### Uploading the pre-compiled binary
 
