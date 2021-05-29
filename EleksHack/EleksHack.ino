@@ -208,7 +208,7 @@ void setup() {
           {
             Serial.println("Formatting..." );
             LITTLEFS.format();
-            Serial.println("Formatting complete.");
+            Serial.println("Formatting complete. Power cycle your clock.");
            }
         }
       }
