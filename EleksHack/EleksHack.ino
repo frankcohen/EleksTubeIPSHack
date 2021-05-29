@@ -173,7 +173,7 @@ static void smartDelay(unsigned long ms)
 
 void setup() {
   Serial.begin(115200);
-  smartDelay(2000);
+  smartDelay(500);
 
   Serial.println();
   Serial.println( "EleksTube IPS Alternative Firmware" );
@@ -184,17 +184,34 @@ void setup() {
   Serial.print( ", using password: " );
   Serial.println( password );
   Serial.print( "Upon connection point your browser to:" );
-  Serial.print( "192,168,1,1" );
+  Serial.print( "192.168.1.1" );
   Serial.print( " to view the main menu." );
-  Serial.println( "The gateway is at 192,168,1,1 and subnet mask is 255,255,255,0" );
+  Serial.println( "The gateway is at 192.168.1.1 and subnet mask is 255.255.255.0" );
   
   randomSeed(analogRead(0));
 
   pinMode(27, OUTPUT);
   digitalWrite(27, HIGH);
 
+  char rx_byte = 0;
+
   if(!LITTLEFS.begin()){
       Serial.println("LITTLEFS/SPIFFS begin failed");
+      Serial.println("Type Y and click Submit to format the SPIFFS");
+
+      while (1)
+      {
+        while (Serial.available() > 0)
+        {
+          char rx_byte = Serial.read();
+          if (rx_byte == 'Y')
+          {
+            Serial.println("Formatting..." );
+            LITTLEFS.format();
+            Serial.println("Formatting complete.");
+           }
+        }
+      }
   }
   
   tfts.begin();
@@ -208,9 +225,11 @@ void setup() {
   tfts.println("Connect using WIFI");
   tfts.println("SSID: EleksHack");
   tfts.println("Password: thankyou");
-  tfts.println("then browse 192.168.1.1");
-  tfts.println("for a menu of commands");
-  
+  tfts.println("then browse");
+  tfts.println("92.168.1.1");
+  tfts.println("for a menu");
+  tfts.println("of commands");
+
   smartDelay(500);
 
   WiFi.mode(WIFI_MODE_APSTA);
@@ -248,6 +267,9 @@ void setup() {
   
   tfts.beginJpg();
   
+  uclock.begin(&stored_config.config.uclock);
+  updateClockDisplay(TFTs::force);
+
   Serial.println( "setup() done" );
 }
 
@@ -818,13 +840,18 @@ void handle_delete()
   server.send(200, "text/html", resp); 
 }
 
+long timeForMore = millis();
+
 void loop() {
   server.handleClient();
 
   if ( playImages )
   {
-    tfts.showNextJpg();
-    smartDelay(2000);
+    if ( millis() > timeForMore + 2500 )
+    {
+      timeForMore = millis();
+      tfts.showNextJpg();
+    }
   }
 
   if ( playVideos )
@@ -834,9 +861,12 @@ void loop() {
 
   if ( playClock )
   {
-    uclock.loop();
-    updateClockDisplay(TFTs::yes);  
-    smartDelay(250);
+    if ( millis() > timeForMore + 200 )
+    {
+      timeForMore = millis();
+      uclock.loop();
+      updateClockDisplay(TFTs::yes);  
+    }
   }
 
 }
