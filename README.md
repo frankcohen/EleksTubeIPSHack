@@ -74,10 +74,17 @@ By default the clock runs in the 'Play Clock' show. The firmware will display th
 
 To get the time from a Network Time Protocol (NTP) server on the Internet, create a Wifi connection from the clock to your nearby Wifi access point. Click Connect To Wifi from the menu. Your browser shows a scan of available Wifi networks. Click on one, enter a password, and connect. Once connected the NTP server time updates the clock time and stores the time value in the Real Time Clock chip (RTC).
 
-**NOTE:** The Connect To Wifi page transmits passwords in clear text. There is no security. I recommend you use a Wifi station with no password. Or, do not use this control.
+**NOTE:** This sketch uses self-signed certificates to operate using HTTPS protocol. A self-signed certificate is a security certificate that is not signed by a certificate authority. This sketch makes its own certificate each time it starts. These certificates are easy to make and do not cost money. However, they do not provide all of the security properties that certificates signed by a CA aim to provide. For example, the Connect To Wifi page transmits passwords. It is likely that someone with light security skills could crack the certificate and learn your passwords. I recommend you use a Wifi station with no password. Or, do not use this control. Also, most browsers will ask you to override a security alert to use the self-signed certificate.
 
 ### Play Images ###
 Play Images is something I personally wanted. I use it to randomly show pictures of my children. Both my children are in love and life is good! Click Play Images from the main menu, then click Play. It picks a JPG image from the file system approximately every 2 seconds.
+
+### Photobooth ###
+Captures a still image from a video stream from your laptop camera. Slices into 6 JPEG images. Uploads the images to the EleksTube IPS SPIFFS. Displays the images on the 6 displays.
+
+![Photobooth showing captured image sliced across the 6 displays](docs/images/Photobooth.jpg)
+
+Photobooth uses your laptop, tablet, or mobile phone's camera to capture an image, slice it into 6 smaller images, then display the images on the EleksTube IPS. It uses the <a href="https://developer.mozilla.org/docs/Web/API/WebRTC_API/Taking_still_photos" target="_blank">WebRTC</a> API standard and should operate on all Web browsers. I found instructions <a href="https://github.com/mdn/samples-server/tree/master/s/webrtc-capturestill">here</a>.
 
 # How to build this firmware
 Unfortunately building this firmware from the source code is not as easy as: Arduino IDE 1.8.13 on MacOS 11.3.1. Choose Tools -> Board -> ESP Arduino (in sketchbook) -> ESP Dev Module. Set Tools -> Upload speed to 115200. There are many dependencies on external libraries:
@@ -118,6 +125,9 @@ Sketch -> Include Library -> Library Manager
 * `TFT_eSPI` by Bodmer (developed on v2.3.61)
 * `Time` by Michael Margolis (developed on v1.6.0)
 * `LittleFS' by lorol (developed on v1.0.6)
+* `ESP32 HTTPS Server` by Frank Hessel fhessel (developed on v1.0.0)
+
+And download the zip and install in Arduino IDE using Sketch -> Include Library -> Add ZIP Library:
 * `Jpeg decoder library`, version Apr 24, 2021 at https://github.com/Bodmer/TJpg_Decoder
 
 ### Configure the `TFT_eSPI` library

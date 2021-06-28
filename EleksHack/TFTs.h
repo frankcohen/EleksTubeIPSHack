@@ -38,11 +38,13 @@ public:
   // @frankcohen: additions
   void beginJpg();
   void showNextJpg();
+  void showSlice( char * filename, int displaynum );
 
 private:
   uint8_t digits[NUM_DIGITS];
   bool enabled;
   fs::File root;
+  fs::File rootslice;
   
   // These BMP functions are stolen straight from TFT_eSPI example code, the TFT_SPIFFS_BMP example.
   // Unfortunately, it's not part of the library.

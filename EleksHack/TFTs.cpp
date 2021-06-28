@@ -32,6 +32,12 @@ int TFTs::EndsWith(const char *str, const char *suffix)
 
 int TFTs::EndsWithJPG(const char *str) { return EndsWith(str, ".jpg"); }
 
+void TFTs::showSlice( char * filename, int devicenum )
+{
+    chip_select.setDigit( devicenum );
+    drawSdJpeg( filename, 0, 0);
+}
+
 
 void TFTs::showNextJpg()
 {
@@ -56,7 +62,6 @@ void TFTs::showNextJpg()
 
             chooseRandomDisplay();
             drawSdJpeg( file.name() , 0, 0);     // This draws a jpeg pulled off the SD Card
-            delay(2000);
           }
           else
           {
@@ -108,7 +113,7 @@ void TFTs::drawSdJpeg(const char *filename, int xpos, int ypos) {
     jpegRender(xpos, ypos);
   }
   else {
-    Serial.println("Jpeg file format not supported!");
+    Serial.println("Jpeg file format not supported");
   }
 }
 
