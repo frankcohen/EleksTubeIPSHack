@@ -55,7 +55,7 @@ Esptool.py creates a 4 Mbyte binary backup file of your clock's existing firmwar
 
 Then, upload the binary from this repository /EleksHack/bin/ to the clock using this command:
 
-python esptool.py -b 115200 --port /dev/cu.usbserial-141210 write_flash --flash_freq 80m 0x000000 elekshack.bin
+python esptool.py -b 115200 --port /dev/cu.usbserial-141210 write_flash --flash_freq 80m 0x000000 elekstube_backup_4M_20210628.bin
 
 Replace the USB port above with your own.
 
@@ -87,6 +87,8 @@ Captures a still image from a video stream from your laptop, tablet, or mobile p
 Photobooth uses your laptop, tablet, or mobile phone's camera to capture an image, slice it into 6 smaller images, then display the images on the EleksTube IPS. It uses the <a href="https://developer.mozilla.org/docs/Web/API/WebRTC_API/Taking_still_photos" target="_blank">WebRTC</a> API standard and should operate on all Web browsers. I found instructions <a href="https://github.com/mdn/samples-server/tree/master/s/webrtc-capturestill">here</a>.
 
 [Watch a 1 minute video to see Photobooth in action](https://vimeo.com/568616803/453c2f24b7)
+
+For Photobooth you want the bin/elekstube_backup_4M_20210628.bin or later pre-built binary archive.
 
 # How to build this firmware
 Unfortunately building this firmware from the source code is not as easy as: Arduino IDE 1.8.13 on MacOS 11.3.1. Choose Tools -> Board -> ESP Arduino (in sketchbook) -> ESP Dev Module. Set Tools -> Upload speed to 115200. There are many dependencies on external libraries:
