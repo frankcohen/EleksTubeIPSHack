@@ -86,7 +86,9 @@ Captures a still image from a video stream from your laptop, tablet, or mobile p
 
 Photobooth uses your laptop, tablet, or mobile phone's camera to capture an image, slice it into 6 smaller images, then display the images on the EleksTube IPS. It uses the <a href="https://developer.mozilla.org/docs/Web/API/WebRTC_API/Taking_still_photos" target="_blank">WebRTC</a> API standard and should operate on all Web browsers. I found instructions <a href="https://github.com/mdn/samples-server/tree/master/s/webrtc-capturestill">here</a>.
 
-![Photobooth video showing captured image sliced across the 6 displays](https://vimeo.com/568616803/453c2f24b7)
+<figure class="video_container">
+  <iframe src="https://vimeo.com/568616803/453c2f24b7" frameborder="0" allowfullscreen="true"> </iframe>
+</figure>
 
 # How to build this firmware
 Unfortunately building this firmware from the source code is not as easy as: Arduino IDE 1.8.13 on MacOS 11.3.1. Choose Tools -> Board -> ESP Arduino (in sketchbook) -> ESP Dev Module. Set Tools -> Upload speed to 115200. There are many dependencies on external libraries:
