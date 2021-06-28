@@ -80,11 +80,13 @@ To get the time from a Network Time Protocol (NTP) server on the Internet, creat
 Play Images is something I personally wanted. I use it to randomly show pictures of my children. Both my children are in love and life is good! Click Play Images from the main menu, then click Play. It picks a JPG image from the file system approximately every 2 seconds.
 
 ### Photobooth ###
-Captures a still image from a video stream from your laptop camera. Slices into 6 JPEG images. Uploads the images to the EleksTube IPS SPIFFS. Displays the images on the 6 displays.
+Captures a still image from a video stream from your laptop, tablet, or mobile phone camera. Slices into 6 JPEG images. Uploads the images to the EleksTube IPS SPIFFS. Displays the images on the 6 displays.
 
 ![Photobooth showing captured image sliced across the 6 displays](docs/images/Photobooth.jpg)
 
 Photobooth uses your laptop, tablet, or mobile phone's camera to capture an image, slice it into 6 smaller images, then display the images on the EleksTube IPS. It uses the <a href="https://developer.mozilla.org/docs/Web/API/WebRTC_API/Taking_still_photos" target="_blank">WebRTC</a> API standard and should operate on all Web browsers. I found instructions <a href="https://github.com/mdn/samples-server/tree/master/s/webrtc-capturestill">here</a>.
+
+![Photobooth video showing captured image sliced across the 6 displays](https://vimeo.com/568616803/453c2f24b7)
 
 # How to build this firmware
 Unfortunately building this firmware from the source code is not as easy as: Arduino IDE 1.8.13 on MacOS 11.3.1. Choose Tools -> Board -> ESP Arduino (in sketchbook) -> ESP Dev Module. Set Tools -> Upload speed to 115200. There are many dependencies on external libraries:
