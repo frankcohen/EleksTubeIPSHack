@@ -16,7 +16,7 @@ I'd also like to build some new experiences with it:
 - Uploading images and video to the clock from a Web browser
 - Configuration of time, Wifi access, start-up animation from a Web browser
 
-I started a discussion [Hacking the EleksTube IPS Clock - anyone tried it?](https://www.reddit.com/r/arduino/comments/mq5td9/hacking_the_elekstube_ips_clock_anyone_tried_it/) on Reddit. [@SmittyHalibut](https://www.reddit.com/user/SmittyHalibut/), [@RedNax67](https://www.reddit.com/user/RedNax67/), and others worked to build an open-source firmware. @SmittyHalibut's firmware is [here](https://github.com/SmittyHalibut/EleksTubeHAX). It uses the ESP32 SPIFFS filesystem to store images. And it implments class libraries for buttons, backlights, RTC, and displays.
+I started a discussion [Hacking the EleksTube IPS Clock - anyone tried it?](https://www.reddit.com/r/arduino/comments/mq5td9/hacking_the_elekstube_ips_clock_anyone_tried_it/) on Reddit. [@SmittyHalibut](https://www.reddit.com/user/SmittyHalibut/), [@RedNax67](https://www.reddit.com/user/RedNax67/), and others worked to build an open-source firmware. @SmittyHalibut's firmware is [here](https://github.com/SmittyHalibut/EleksTubeHAX). It uses the ESP32 SPIFFS filesystem to store images. And it implements class libraries for buttons, backlights, RTC, and displays.
 
 ## Using EleksHack Alternative Firmware
 
@@ -163,6 +163,18 @@ If you want to change these:
 * Name them `0.bmp` through `9.bmp` and put them in the `data/` directory.
 
 Then use the Manage Media command to upload.
+
+#Benefits for Arduino Developers
+
+For Arduino developers, consider the Photobooth software is demonstration code for you to do these in your own projects:
+
+* Wifi Access Point - turn your Arduino project into it's own Web server and Wifi access point.
+* HTTPS web server on ESP32 - implements HTTPS protocols, and shows how to create self-signed SSL certificates.
+* Browser-based user experience - command your Arduino project using a Web page.
+* Browser-based image and video capture - captures JPEG and PNG images from your laptop, tablet, and mobile cameras.
+* File upload and Base64 decoding - transfers JPEG, PNG, and binary files from your laptop, tablet, and mobile device, including decoding the Base64 encoded data. Uses HTTP/HTML Web forms.
+* Javascript binary file uploads - uploads JPEG and PNG images from a Javascript context without needing JQuery or any other plug-in or library.
+* Browser Javascript Canvas operations - slices one JPEG and PNG image into smaller images, without needing JQuery or other libraries.
 
 # Documentation
 
