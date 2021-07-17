@@ -128,8 +128,9 @@ Sketch -> Include Library -> Library Manager
 * `DS1307RTC` by Michael Margolis (developed on v1.4.1)
 * `TFT_eSPI` by Bodmer (developed on v2.3.61)
 * `Time` by Michael Margolis (developed on v1.6.0)
-* `LittleFS' by lorol (developed on v1.0.6)
+* `LittleFS_esp32' by lorol (developed on v1.0.6)
 * `ESP32 HTTPS Server` by Frank Hessel fhessel (developed on v1.0.0)
+* 'JPEGDecoder' by Bodmer (developed on v1.0.0) https://github.com/Bodmer/JPEGDecoder
 
 And download the zip and install in Arduino IDE using Sketch -> Include Library -> Add ZIP Library:
 * `Jpeg decoder library`, version Apr 24, 2021 at https://github.com/Bodmer/TJpg_Decoder
